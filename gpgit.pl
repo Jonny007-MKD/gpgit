@@ -173,6 +173,7 @@ use MIME::Parser;
 ## Encrypt
   {
      my $code;
+     $mime->head->add('X-GPGIT-Executed', 'True');
      if( $encrypt_mode eq 'pgpmime' ){
         $code = $gpg->mime_encrypt( $mime, @recipients );
      } elsif( $encrypt_mode eq 'prefer-inline' ){
