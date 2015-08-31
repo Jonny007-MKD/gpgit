@@ -29,8 +29,9 @@ use MIME::Parser;
   my $encrypt_mode   = 'pgpmime';
   my $inline_flatten = 0;
   my $skip_smime     = 0;
-  my $skip_ms_bug  = 0;
+  my $skip_ms_bug    = 0;
   my @recipients     = ();
+  my $log            = 0;
   {
      help() unless @ARGV;
      my @args = @ARGV;
@@ -49,6 +50,8 @@ use MIME::Parser;
            $skip_smime = 1;
 	} elsif( $key eq '--skip-ms-bug' ){
            $skip_ms_bug = 1;
+	} elsif( $key eq '--log' ){
+           $log = 1;
 	} elsif( $key =~ /^.+\@.+$/ ){
 	   push @recipients, $key;
 	} else {
@@ -64,7 +67,7 @@ use MIME::Parser;
 ## Set the home environment variable from the user running the script
   $ENV{HOME} = (getpwuid($>))[7];
 
-  open (LOG, ">gpgit.log") || die "Could not open log file\n";
+  if ($log) {open (LOG, ">gpgit.log") || die "Could not open log file\n"};
 
 ## Object for GPG encryption
   my $gpg = new Mail::GnuPG( always_trust => 1 );
@@ -72,7 +75,7 @@ use MIME::Parser;
 ## Make sure we have the appropriate public key for all recipients
   foreach( @recipients ){
      unless( $gpg->has_public_key( $_ ) ){
-        print LOG "Recipient without public key: \"" . $_ . "\". Flushing STDIN.\n";
+        if ($log) {print LOG "Recipient without public key: \"" . $_ . "\". Flushing STDIN.\n"};
         while(<STDIN>){
            print;
         }
@@ -98,12 +101,14 @@ use MIME::Parser;
 
 ## Test if it is already encrypted
   if( $gpg->is_encrypted( $mime ) ){
+     if ($log) {print LOG "Input is already encrypted. Flushing plain.\n"};
      print $plain; exit 0;
   }
 
 ## Test if the email is S/MIME encrypted - already encrypted if so
   if( $skip_smime ) {
     if( $mime->mime_type =~ /^application\/pkcs7-mime/ ){
+     if ($log) {print LOG "Input is already S/MIME encrypted which shall be skipped. Flushing plain.\n"};
       print $plain; exit 0;
     }
   } 
@@ -128,6 +133,7 @@ use MIME::Parser;
       }
       if( $seen_pgp_id ) {
         ## this is a buggy ms exchange pgp/mime
+        if ($log) {print LOG "Skipping MS Exchange PGP/MIME bug. Flushing plain.\n"};
         print $plain; exit 0;
       }
     }
@@ -176,7 +182,6 @@ use MIME::Parser;
 ## Encrypt
   {
      my $code;
-     $mime->head->add('X-GPGIT-Executed', 'True');
      if( $encrypt_mode eq 'pgpmime' ){
         $code = $gpg->mime_encrypt( $mime, @recipients );
      } elsif( $encrypt_mode eq 'prefer-inline' ){
@@ -187,18 +192,21 @@ use MIME::Parser;
      } elsif( $encrypt_mode eq 'inline-or-plain' ){
         $mime->make_singlepart;
         if( $mime->mime_type =~ /^text\/plain/ ){
-	   $code = $gpg->ascii_encrypt( $mime, @recipients );
-	} else {
-	   print $plain; exit 0;
-	}
+          $code = $gpg->ascii_encrypt( $mime, @recipients );
+        } else {
+          if ($log) {print LOG "MIME type is not plain and I shall not encrypt. Flushing plain.\n"};
+          print $plain; exit 0;
+        }
      }
 
      if( $code ){
+        if ($log) {print LOG "Encrypting in mode " . $encrypt_mode . " returned code " . $code . ". Flushing plain.\n"};
         print $plain;
-	exit 0;
+        exit 0;
      }
   }
 
+  $mime->head->add('X-GPGIT-Encrypted', 'True');
 ## Remove some headers which might have been broken by the process of encryption
   $mime->head()->delete($_) foreach qw( DKIM-Signature DomainKey-Signature );
 
