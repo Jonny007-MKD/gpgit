@@ -25,49 +25,55 @@ use warnings;
 use Mail::GnuPG;
 use MIME::Parser;
 
+
+
 ## Parse args
-  my $encrypt_mode   = 'pgpmime';
+  my $encrypt_mode   = 'prefer-inline';
   my $inline_flatten = 0;
   my $skip_smime     = 0;
   my $skip_ms_bug    = 0;
   my @recipients     = ();
   my $log            = 0;
+
+  if ($log) {open (LOG, ">/tmp/gpgit.log") || die "Could not open log file\n"};
+
   {
      help() unless @ARGV;
      my @args = @ARGV;
      while( @args ){
         my $key = shift @args;
-	if( $key eq '--help' || $key eq '-h' ){
-	   help();
-	} elsif( $key eq '--encrypt-mode' ){
-	   $encrypt_mode = shift @args;
-	   unless( defined $encrypt_mode && grep( $encrypt_mode eq $_, 'prefer-inline', 'pgpmime', 'inline-or-plain' ) ){
-	      die "Bad value for --encrypt-mode\n";
-	   }
-	} elsif( $key eq '--inline-flatten' ){
+        if( $key eq '--help' || $key eq '-h' ){
+           help();
+        } elsif( $key eq '--encrypt-mode' ){
+           $encrypt_mode = shift @args;
+           unless( defined $encrypt_mode && grep( $encrypt_mode eq $_, 'prefer-inline', 'pgpmime', 'inline-or-plain' ) ){
+              if ($log) {print LOG "Bad value for --encrypt-mode\n";}
+              die "Bad value for --encrypt-mode\n";
+           }
+        } elsif( $key eq '--inline-flatten' ){
            $inline_flatten = 1;
-	} elsif( $key eq '--skip-smime' ){
+        } elsif( $key eq '--skip-smime' ){
            $skip_smime = 1;
-	} elsif( $key eq '--skip-ms-bug' ){
+        } elsif( $key eq '--skip-ms-bug' ){
            $skip_ms_bug = 1;
-	} elsif( $key eq '--log' ){
+        } elsif( $key eq '--log' ){
            $log = 1;
-	} elsif( $key =~ /^.+\@.+$/ ){
-	   push @recipients, $key;
-	} else {
+        } elsif( $key =~ /^.+\@.+$/ ){
+           push @recipients, $key;
+        } else {
+           if ($log) {print LOG "Bad argument: $key\n";}
            die "Bad argument: $key\n";
-	}
+        }
      }
      die "Missing recipients\n" unless @recipients;
      if( $inline_flatten && $encrypt_mode eq 'pgpmime' ){
+        if ($log) {print LOG "inline-flatten option makes no sense with \"pgpmime\" encrypt-mode. See --help\n";}
         die "inline-flatten option makes no sense with \"pgpmime\" encrypt-mode. See --help\n"
      }
   }
 
 ## Set the home environment variable from the user running the script
-  $ENV{HOME} = (getpwuid($>))[7];
-
-  if ($log) {open (LOG, ">gpgit.log") || die "Could not open log file\n"};
+#  $ENV{HOME} = (getpwuid($>))[7];
 
 ## Object for GPG encryption
   my $gpg = new Mail::GnuPG( always_trust => 1 );
