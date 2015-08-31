@@ -64,12 +64,15 @@ use MIME::Parser;
 ## Set the home environment variable from the user running the script
   $ENV{HOME} = (getpwuid($>))[7];
 
+  open (LOG, ">gpgit.log") || die "Could not open log file\n";
+
 ## Object for GPG encryption
   my $gpg = new Mail::GnuPG( always_trust => 1 );
 
 ## Make sure we have the appropriate public key for all recipients
   foreach( @recipients ){
      unless( $gpg->has_public_key( $_ ) ){
+        print LOG "Recipient without public key: \"" . $_ . "\". Flushing STDIN.\n";
         while(<STDIN>){
            print;
         }
