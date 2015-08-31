@@ -14,15 +14,14 @@ read the usage information.
 
 If the message is already encrypted, it doesn't get encrypted a second time.
 
-Exim users can use the transport_filter directive in a transport in order to
-call this application, like so:
+*   Exim users can use the transport_filter directive in a transport in order to call this application, like so:
 
-  transport_filter = /bin/gpgit.pl my.email.address@example.com
+        transport_filter = /bin/gpgit.pl my.email.address@example.com
 
-Procmail users can add a procmail recipe as follows
+*   Procmail users can add a procmail recipe as follows
 
-  :0 f
-  | /bin/gpgit.pl my.email.address@example.com
+        :0 f | /bin/gpgit.pl my.email.address@example.com
+*   Dovecot users can add a Sieve filter as explained here: https://perot.me/encrypt-specific-incoming-emails-using-dovecot-and-sieve
 
 If you call gpgit.pl from a different application, I'd love to hear from you so
 I can update this README file.
