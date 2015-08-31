@@ -1,5 +1,8 @@
 See https://grepular.com/Automatically_Encrypting_all_Incoming_Email
 
+Usage
+=====
+
 This application takes one argument on the command line. The email address to
 look up the public key that the message will be encrypted with. An email
 message is piped through the application, and the resulting email is sent to
@@ -23,3 +26,21 @@ Procmail users can add a procmail recipe as follows
 
 If you call gpgit.pl from a different application, I'd love to hear from you so
 I can update this README file.
+
+Installation
+============
+
+* Install build tools like gcc and make and gpgv:
+
+		apt-get install gcc make gpg
+  
+* Get perl dependencies with cpan:
+  
+		cpan -u   # Upgrade all modules
+		cpan install GnuPG::Interface
+		cpan install Mail::GnuPG
+		cpan install MIME::Tools
+		rm -rf $HOME/.cpan/build/ $HOME/.cpan/sources/authors/id/
+
+* Clone this repository: `git clone ...`
+  
