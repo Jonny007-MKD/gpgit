@@ -200,15 +200,21 @@ use MIME::Parser;
      }
 
      if( $code ){
-        if ($log) {print LOG "Encrypting in mode " . $encrypt_mode . " returned code " . $code . ". Flushing plain.\n"};
+        if ($log) {print LOG "Encrypting in mode " . $encrypt_mode . " returned code " . $code . ". Please try to encrypt something manually and fix the errors (like an expired subkey). Flushing plain.\n"};
         print $plain;
         exit 0;
      }
   }
 
-  $mime->head->add('X-GPGIT-Encrypted', 'True');
-## Remove some headers which might have been broken by the process of encryption
-  $mime->head()->delete($_) foreach qw( DKIM-Signature DomainKey-Signature );
+  $mime->head()->add('X-GPGIT-Encrypted', 'True');
+
+## Remove some headers which have been broken by the process of encryption
+  foreach my $name (qw( DKIM-Signature DomainKey-Signature )) {
+     if ($mime->head()->get($name)) {
+        $mime->head()->add('X-GPGIT-DKIM-Signature-Removed', 'True');
+        $mime->head()->delete($name);
+     }
+  }
 
 ## Print out the encrypted version
   print $mime->stringify;
