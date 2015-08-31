@@ -33,9 +33,10 @@ use MIME::Parser;
   my $skip_smime     = 0;
   my $skip_ms_bug    = 0;
   my @recipients     = ();
-  my $log            = 0;
+  my $log            = 1;
 
   if ($log) {open (LOG, ">/tmp/gpgit.log") || die "Could not open log file\n"};
+  if ($log) {print LOG "Real UID: " . getpwuid($<) . " (" . $< . " : " . $( . "), Eff UID: " . getpwuid($>) . " (" . $> . " : " . $) . ")\n";}
 
   {
      help() unless @ARGV;
@@ -70,10 +71,18 @@ use MIME::Parser;
         if ($log) {print LOG "inline-flatten option makes no sense with \"pgpmime\" encrypt-mode. See --help\n";}
         die "inline-flatten option makes no sense with \"pgpmime\" encrypt-mode. See --help\n"
      }
+  if ($log) {print LOG "parsed arguments.\n";}
   }
 
+
 ## Set the home environment variable from the user running the script
-#  $ENV{HOME} = (getpwuid($>))[7];
+  $ENV{HOME} = (getpwuid($>))[7];
+# Set real UID to effective UID
+  $< = $>;
+  if ($log) {print LOG "Real UID: " . getpwuid($<) . " (" . $< . " : " . $( . "), Eff UID: " . getpwuid($>) . " (" . $> . " : " . $) . ")\n";}
+
+
+if ($log) {print LOG "Creating Mail::GnuPG object.\n";}
 
 ## Object for GPG encryption
   my $gpg = new Mail::GnuPG( always_trust => 1 );
@@ -95,6 +104,8 @@ use MIME::Parser;
      local $/ = undef;
      $plain = <STDIN>;
   }
+
+if ($log) {print LOG "Parsing Mail with MIME::Parser";}
 
 ## Parse the email
   my $mime;
