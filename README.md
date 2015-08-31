@@ -32,7 +32,7 @@ Installation
 
 * Install build tools like gcc and make and gpgv:
 
-		apt-get install gcc make gpg
+		apt-get install gcc make gpgv
   
 * Get perl dependencies with cpan:
   
