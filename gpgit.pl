@@ -28,7 +28,7 @@ use MIME::Parser;
 
 
 ## Parse args
-  my $encrypt_mode   = 'prefer-inline';
+  my $encrypt_mode   = 'pgpmime';
   my $inline_flatten = 0;
   my $skip_smime     = 0;
   my $skip_ms_bug    = 0;
@@ -59,11 +59,8 @@ use MIME::Parser;
            $skip_ms_bug = 1;
         } elsif( $key eq '--log' ){
            $log = 1;
-        } elsif( $key =~ /^.+\@.+$/ ){
-           push @recipients, $key;
         } else {
-           if ($log) {print LOG "Bad argument: $key\n";}
-           die "Bad argument: $key\n";
+           push @recipients, $key;
         }
      }
      die "Missing recipients\n" unless @recipients;
@@ -105,7 +102,7 @@ if ($log) {print LOG "Creating Mail::GnuPG object.\n";}
      $plain = <STDIN>;
   }
 
-if ($log) {print LOG "Parsing Mail with MIME::Parser";}
+if ($log) {print LOG "Parsing Mail with MIME::Parser\n";}
 
 ## Parse the email
   my $mime;
@@ -200,15 +197,18 @@ if ($log) {print LOG "Parsing Mail with MIME::Parser";}
   {
      my $code;
      if( $encrypt_mode eq 'pgpmime' ){
+        if ($log) {print LOG "Encrypting as pgpmime with recipients [" . join(", ", @recipients) . "].\n"};
         $code = $gpg->mime_encrypt( $mime, @recipients );
      } elsif( $encrypt_mode eq 'prefer-inline' ){
         $mime->make_singlepart;
+        if ($log) {print LOG "Encrypting as inline or mime with recipients [" . join(", ", @recipients) . "].\n"};
         $code = $mime->mime_type =~ /^text\/plain/
               ? $gpg->ascii_encrypt( $mime, @recipients )
               : $gpg->mime_encrypt(  $mime, @recipients );
      } elsif( $encrypt_mode eq 'inline-or-plain' ){
         $mime->make_singlepart;
         if( $mime->mime_type =~ /^text\/plain/ ){
+          if ($log) {print LOG "Encrypting as inline with recipients [" . join(", ", @recipients) . "].\n"};
           $code = $gpg->ascii_encrypt( $mime, @recipients );
         } else {
           if ($log) {print LOG "MIME type is not plain and I shall not encrypt. Flushing plain.\n"};
